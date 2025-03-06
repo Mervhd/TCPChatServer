@@ -24,5 +24,4 @@ A robust TCP-based chat server built in C++ using Winsock, developed as an assig
 ## Installation
 1. **Clone the Repository:**
    ```bash
-   git clone https://github.com/[your-username]/tcp-chat-server.git
-   cd tcp-chat-server
+   https://github.com/Mervhd/TCPChatServer.git

@@ -9,6 +9,9 @@ public:
     // Constructor
     ChatServer();
 
+    // Destructor
+    ~ChatServer();
+
     // Setup the server
     SOCKET setupServer(int port, int chatCapacity, char commandChar);
 
@@ -23,6 +26,7 @@ public:
 
 private:
     SOCKET udpSocket;  // UDP socket for broadcasting
+    char commandChar; // Store command character
 };
 
 #endif 

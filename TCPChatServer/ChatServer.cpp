@@ -10,11 +10,20 @@
 #pragma comment(lib, "Ws2_32.lib")  // Link Winsock library
 
 // Constructor
-ChatServer::ChatServer() : udpSocket(INVALID_SOCKET) {}
+ChatServer::ChatServer() : udpSocket(INVALID_SOCKET), commandChar('~') {} // Default command char ~
+
+// Destructor
+ChatServer::~ChatServer() {
+    if (udpSocket != INVALID_SOCKET) {
+        closesocket(udpSocket);
+        udpSocket = INVALID_SOCKET;
+    }
+}
 
 // Function to set up the server
 SOCKET ChatServer::setupServer(int port, int chatCapacity, char commandChar) {
     WSADATA wsaData;
+    this->commandChar = commandChar; // Store command Character
 
     // Initialize Winsock
     int wsaStartupResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
@@ -62,15 +71,16 @@ SOCKET ChatServer::setupServer(int port, int chatCapacity, char commandChar) {
     // Setup UDP socket for broadcasting
     udpSocket = socket(AF_INET, SOCK_DGRAM, 0);
     if (udpSocket == INVALID_SOCKET) {
-        std::cerr << "Error: Failed to create UDP socket with error " << WSAGetLastError() << std::endl;
+        std::cerr << "Warning: Failed to create UDP socket with error " << WSAGetLastError() << std::endl;
         return serverSocket;
     }
 
     // Enable broadcast on the UDP socket
     BOOL broadcastEnabled = TRUE;
     if (setsockopt(udpSocket, SOL_SOCKET, SO_BROADCAST, (char*)&broadcastEnabled, sizeof(broadcastEnabled)) == SOCKET_ERROR) {
-        std::cerr << "Error: Failed to enable broadcast on UDP socket with error " << WSAGetLastError() << std::endl;
+        std::cerr << "Warning: Failed to enable broadcast on UDP socket with error " << WSAGetLastError() << std::endl;
         closesocket(udpSocket);
+        udpSocket = INVALID_SOCKET; // Reset to invalid
         return serverSocket;
     }
 

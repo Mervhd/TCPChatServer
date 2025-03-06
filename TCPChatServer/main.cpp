@@ -7,8 +7,10 @@
 
 #pragma comment(lib, "Ws2_32.lib")  // Link Winsock library
 
+std::atomic<bool> keepBroadcasting(true);
+
 void broadcastServerInfo(ChatServer& server, int port) {
-    while (true) {
+    while (keepBroadcasting) {
         server.broadcastServerInfo(port);
         std::this_thread::sleep_for(std::chrono::seconds(10));
     }
@@ -79,24 +81,21 @@ int main() {
                     if (newClientSocket > max_sd) {
                         max_sd = newClientSocket;
                     }
-
                     activeClients++; // Increment active client count
                 }
-            }
-            else {
-                std::cerr << "Error: Failed to accept client connection." << std::endl;
             }
         }
 
         // Check all clients for incoming data
         for (SOCKET i = 0; i <= max_sd; i++) {
-            if (FD_ISSET(i, &readfds)) {
-                if (i != serverSocket) {
-                    std::string message = server.receiveFramedMessage(i);
-                    if (!message.empty()) {
-                        std::cout << "Message received from client: " << message << std::endl;
-                        ClientHandler clientHandler;
-                        clientHandler.handleClient(i, message); // Pass message directly to handleClient
+            if (FD_ISSET(i, &readfds) && i != serverSocket) {
+                std::string message = server.receiveFramedMessage(i);
+                if (!message.empty()) {
+                    std::cout << "Message received from client: " << message << std::endl;
+                    ClientHandler& handler = ClientHandler::getInstance();
+                    if (handler.handleClient(i, message)) {
+                        FD_CLR(i, &masterSet);
+                        activeClients--;
                     }
                     else {
                         // Connection closed by the client
@@ -110,6 +109,7 @@ int main() {
         }
     }
 
+    keepBroadcasting = false; // Stop Broadcasting
     // Clean up Winsock when done
     WSACleanup();
 

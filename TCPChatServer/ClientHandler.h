@@ -8,10 +8,16 @@
 
 class ClientHandler {
 public:
+    // Singleton patter
+    static ClientHandler& getInstance();
+
     // Function to handle client commands
-    void handleClient(SOCKET clientSocket, const std::string& clientMessage);
+    bool handleClient(SOCKET clientSocket, const std::string& clientMessage);
 
 private:
+    // Private constructor for singleton
+    ClientHandler() {}
+
     // User management functions
     bool registerUser(const std::string& username, const std::string& password);
     bool loginUser(const std::string& username, const std::string& password);
@@ -37,7 +43,7 @@ private:
     void processLoginCommand(SOCKET clientSocket, const std::string& command);
 
     // Function to process the ~logout command
-    void processLogoutCommand(SOCKET clientSocket); // Only one parameter
+    bool processLogoutCommand(SOCKET clientSocket); // Only one parameter
 
     // Function to process the ~getlist command
     void processGetListCommand(SOCKET clientSocket);

@@ -7,8 +7,13 @@
 #include <winsock2.h>
 #include <algorithm>
 
+ClientHandler& ClientHandler::getInstance() {
+    static ClientHandler instance;
+    return instance;
+}
+
 // Handle client commands
-void ClientHandler::handleClient(SOCKET clientSocket, const std::string& clientMessage) {
+bool ClientHandler::handleClient(SOCKET clientSocket, const std::string& clientMessage) {
     if (clientMessage == "~help") {
         processHelpCommand(clientSocket);
     }
@@ -19,7 +24,7 @@ void ClientHandler::handleClient(SOCKET clientSocket, const std::string& clientM
         processLoginCommand(clientSocket, clientMessage);
     }
     else if (clientMessage.find("~logout") == 0) {
-        processLogoutCommand(clientSocket);
+        return processLogoutCommand(clientSocket);
     }
     else if (clientMessage.find("~getlist") == 0) {
         processGetListCommand(clientSocket);
@@ -33,6 +38,7 @@ void ClientHandler::handleClient(SOCKET clientSocket, const std::string& clientM
     else {
         relayMessageToAll(clientSocket, clientMessage);
     }
+    return false; // No disconnect 
 }
 
 // User management functions
@@ -137,15 +143,15 @@ void ClientHandler::processLoginCommand(SOCKET clientSocket, const std::string& 
 }
 
 // Function to process the ~logout command
-void ClientHandler::processLogoutCommand(SOCKET clientSocket) {
-    for (auto& user : clientSockets) {
-        if (user.second == clientSocket) {
-            logoutUser(user.first);
-            std::string message = "Logout successful. Goodbye, " + user.first + ".\n";
+bool ClientHandler::processLogoutCommand(SOCKET clientSocket) {
+    for (auto it = clientSockets.begin(); it != clientSockets.end(); ++it) {
+        if (it->second == clientSocket) {
+            logoutUser(it->first);
+            std::string message = "Logout successful. Goodbye, " + it->first + ".\n";
             sendFramedMessage(clientSocket, message);
             closesocket(clientSocket);
-            clientSockets.erase(user.first);
-            return;
+            clientSockets.erase(it);
+            return true;
         }
     }
     sendFramedMessage(clientSocket, "Error: No active session to log out.\n");
@@ -198,6 +204,11 @@ void ClientHandler::processSendCommand(SOCKET clientSocket, const std::string& c
 
 // Function to relay a message to all active clients
 void ClientHandler::relayMessageToAll(SOCKET senderSocket, const std::string& message) {
+    std::ofstream logFile("message_log.txt", std::ios::app); // Append to log
+    if (logFile.is_open()) {
+        logFile << message << std::endl;
+        logFile.close();
+    }
     for (const auto& client : clientSockets) {
         if (client.second != senderSocket) {
             sendFramedMessage(client.second, message);
